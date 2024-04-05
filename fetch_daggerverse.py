@@ -1,3 +1,4 @@
+import os
 import requests
 from bs4 import BeautifulSoup
 
@@ -30,17 +31,29 @@ def write_known_modules(file_path, modules):
         for module in sorted(modules):
             file.write(module + '\n')
 
+def send_discord_notification(new_modules):
+    webhook_url = os.getenv('DISCORD_WEBHOOK_URL')
+    if not webhook_url:
+        print("Discord webhook URL is not set.")
+        return
+    message = f"New Daggerverse modules detected: {', '.join(new_modules)}"
+    data = {"content": message}
+    response = requests.post(webhook_url, json=data)
+    print(f"Discord notification sent with status code {response.status_code}")
+
 # Main script execution starts here
 current_modules = fetch_modules()
 known_modules = read_known_modules(known_modules_file_path)
 
-# Find new modules by comparing the current list to the known list
 new_modules = current_modules - known_modules
 
 if new_modules:
     print("New modules detected:")
     for module in new_modules:
         print(module)
+    # Send a Discord notification for new modules
+    send_discord_notification(new_modules)
+
     # Update the known modules list with the current list
     known_modules.update(new_modules)
     write_known_modules(known_modules_file_path, known_modules)
